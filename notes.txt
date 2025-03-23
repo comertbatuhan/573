@@ -1,5 +1,0 @@
-Passwords
-    Superuser
-        Username: batuhan.comert
-        email: comert.batuhan@outlook.com 
-        password: postgres

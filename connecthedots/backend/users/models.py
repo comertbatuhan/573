@@ -5,6 +5,7 @@ from django.utils import timezone
 class User(AbstractUser):
     email = models.EmailField(unique=True)  # Used for password reset only
     date_of_sign = models.DateTimeField(default=timezone.now)
+    profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

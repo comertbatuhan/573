@@ -42,8 +42,9 @@ const Login = () => {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store user data in localStorage or context
-      localStorage.setItem('user', JSON.stringify(data));
+      // Store authentication token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       navigate('/dashboard'); // Redirect to dashboard after successful login
     } catch (err) {
       setError(err.message || 'Failed to login. Please try again.');

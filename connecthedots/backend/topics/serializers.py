@@ -4,5 +4,5 @@ from .models import Topic
 class TopicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Topic
-        fields = ['id', 'topicName', 'createdBy', 'creationDate']
+        fields = ['id', 'topicName', 'createdBy', 'creationDate', 'interactionCount']
         read_only_fields = ['createdBy', 'creationDate'] 

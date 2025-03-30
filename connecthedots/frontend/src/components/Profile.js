@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './Profile.css';
 
 const Profile = () => {
@@ -161,9 +161,14 @@ const Profile = () => {
     <div className="profile-container">
       <div className="profile-header">
         <h1>Profile</h1>
-        <button onClick={handleLogout} className="logout-button">
-          Logout
-        </button>
+        <div className="profile-header-actions">
+          <Link to="/dashboard" className="back-to-dashboard-button">
+            Back to Dashboard
+          </Link>
+          <button onClick={handleLogout} className="logout-button">
+            Logout
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}

@@ -5,6 +5,7 @@ class Topic(models.Model):
     topicName = models.CharField(max_length=200)
     createdBy = models.ForeignKey('users.User', on_delete=models.CASCADE)
     creationDate = models.DateTimeField(auto_now_add=True)
+    interactionCount = models.IntegerField(default=0)
 
     def __str__(self):
         return self.topicName

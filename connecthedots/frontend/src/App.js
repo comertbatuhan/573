@@ -5,6 +5,7 @@ import Signup from './components/Signup';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Profile from './components/Profile';
+import Forum from './components/Forum';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -31,6 +32,14 @@ function App() {
                 <Profile />
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="/topic/:topicId"
+            element={
+              <ProtectedRoute>
+                <Forum />
+              </ProtectedRoute>
+            }
           />
           {/* Add other routes here later */}
         </Routes>

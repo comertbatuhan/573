@@ -18,14 +18,19 @@ const Profile = () => {
   });
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [userTopics, setUserTopics] = useState([]);
 
   useEffect(() => {
     fetchUserData();
+    fetchUserTopics();
   }, []);
 
-  const fetchUserData = async () => {
+  const fetchUserData = () => {
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData) {
+        throw new Error('No user data found');
+      }
       setUser(userData);
       setFormData({
         username: userData.username,
@@ -35,6 +40,25 @@ const Profile = () => {
     } catch (error) {
       setError('Failed to load user data');
       setLoading(false);
+    }
+  };
+
+  const fetchUserTopics = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/usertopics/user-topics/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user topics');
+      }
+
+      const data = await response.json();
+      setUserTopics(data);
+    } catch (error) {
+      setError('Failed to load user topics');
     }
   };
 
@@ -155,7 +179,20 @@ const Profile = () => {
     navigate('/login');
   };
 
+  const getActionType = (topic) => {
+    const actions = [];
+    if (topic.created) actions.push('Created');
+    if (topic.addedNode) actions.push('Added Node');
+    if (topic.posted) actions.push('Posted');
+    return actions.join(', ');
+  };
+
+  const handleTopicClick = (topicId) => {
+    navigate(`/topic/${topicId}`);
+  };
+
   if (loading) return <div className="profile-container">Loading...</div>;
+  if (error) return <div className="profile-container error-message">{error}</div>;
 
   return (
     <div className="profile-container">
@@ -170,8 +207,6 @@ const Profile = () => {
           </button>
         </div>
       </div>
-
-      {error && <div className="error-message">{error}</div>}
 
       <div className="profile-content">
         <div className="profile-image-section">
@@ -307,6 +342,31 @@ const Profile = () => {
           </div>
         </div>
       )}
+
+      <div className="profile-section">
+        <h2>My Topics</h2>
+        <div className="topics-list">
+          {userTopics.length === 0 ? (
+            <p className="no-topics">No topics yet</p>
+          ) : (
+            userTopics.map((topic) => (
+              <div 
+                key={topic.topic_id} 
+                className="topic-card"
+                onClick={() => handleTopicClick(topic.topic_id)}
+              >
+                <h3>{topic.topic_name}</h3>
+                <div className="topic-actions">
+                  <span className="action-type">{getActionType(topic)}</span>
+                  <span className="action-date">
+                    {new Date(topic.actionDate).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -10,4 +10,5 @@ urlpatterns = [
     path('register/', register_user, name='register_user'),
     path('login/', login_user, name='login_user'),
     path('password-reset/', password_reset_request, name='password_reset_request'),
+    path('me/', UserViewSet.as_view({'get': 'get_me'}), name='get_me'),
 ] 

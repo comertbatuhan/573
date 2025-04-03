@@ -15,7 +15,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
-# Create your views here.
 
 @api_view(['POST'])
 def register_user(request):
@@ -115,9 +114,9 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['delete'])
     def delete_profile(self, request):
         user = request.user
-        # Instead of deleting the user, we'll anonymize their data
+        # I dont delete user, instead anonymize it.
         with transaction.atomic():
-            # Update user data to be anonymous
+            # Update 
             user.username = f"deleted_user_{user.id}"
             user.email = f"deleted_{user.id}@example.com"
             user.first_name = "Deleted"
@@ -126,7 +125,11 @@ class UserViewSet(viewsets.ModelViewSet):
             user.is_active = False
             user.save()
 
-            # Keep all user-related data (topics, posts, etc.)
-            # They will be associated with the anonymized user
-
         return Response({'message': 'Profile deleted successfully'})
+
+    @action(detail=False, methods=['get'])
+    def get_me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+        

@@ -14,4 +14,6 @@ urlpatterns = [
     path('api/connections/', create_connection, name='create_connection'),
     path('api/connections/<int:pk>/', update_or_delete_connection, name='update_or_delete_connection'),
     path('api/usertopics/', include('usertopics.urls')),
+
+    path('api/forums/', include('forums.urls')),
 ]

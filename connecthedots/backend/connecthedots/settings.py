@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     "forums",
     "graphs",
     "nodes",
-    "posts",
     "topics",
     "usernodes",
     "users",

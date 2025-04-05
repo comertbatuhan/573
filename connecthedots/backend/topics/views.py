@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from .models import Topic
 from .serializers import TopicSerializer
 from django.shortcuts import get_object_or_404
-
-# Create your views here.
+from usertopics.models import UserTopics
+from usertopics.utils import record_user_topic_action
 
 class TopicViewSet(viewsets.ModelViewSet):
     queryset = Topic.objects.all()
@@ -13,7 +13,8 @@ class TopicViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(createdBy=self.request.user)
+        topic = serializer.save(createdBy=self.request.user)  
+        record_user_topic_action(self.request.user, topic, 'created')
 
     def get_queryset(self):
         queryset = Topic.objects.all()

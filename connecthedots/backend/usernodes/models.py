@@ -2,7 +2,6 @@ from django.db import models
 from nodes.models import Node
 from django.conf import settings
 
-# Create your models here.
 class UserNode(models.Model):
     node = models.ForeignKey(
         'nodes.Node',

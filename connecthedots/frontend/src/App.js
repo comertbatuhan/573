@@ -6,7 +6,6 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Profile from './components/Profile';
 import Forum from './components/Forum';
-import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
 function App() {
@@ -17,31 +16,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route
-            path="/topic/:topicId"
-            element={
-              <ProtectedRoute>
-                <Forum />
-              </ProtectedRoute>
-            }
-          />
-          {/* Add other routes here later */}
+          <Route path="/topic/:topicId" element={<Forum />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
     </Router>

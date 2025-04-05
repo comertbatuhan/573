@@ -1,38 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const [topics, setTopics] = useState([]);
+  const [userTopics, setUserTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateTopic, setShowCreateTopic] = useState(false);
   const [newTopicName, setNewTopicName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTopics();
+    fetchUserTopics();
   }, []);
 
   const fetchTopics = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/topics/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch topics');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch topics');
       const data = await response.json();
       setTopics(data);
       setLoading(false);
     } catch (error) {
       setError('Failed to load topics');
       setLoading(false);
+    }
+  };
+
+  const fetchUserTopics = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/usertopics/user-topics/', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch user topics');
+      const data = await response.json();
+      setUserTopics(data);
+    } catch (error) {
+      console.error('Failed to load user topics');
     }
   };
 
@@ -45,15 +57,10 @@ const Dashboard = () => {
 
     try {
       const response = await fetch(`http://localhost:8000/api/topics/?search=${encodeURIComponent(searchQuery)}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
 
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
-
+      if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
@@ -80,11 +87,7 @@ const Dashboard = () => {
       }
 
       const newTopic = await response.json();
-      setTopics([...topics, { 
-        id: newTopic.id, 
-        name: newTopic.topicName, 
-        interactions: 0 
-      }]);
+      setTopics([...topics, { id: newTopic.id, name: newTopic.topicName, interactions: 0 }]);
       setNewTopicName('');
       setShowCreateTopic(false);
     } catch (error) {
@@ -94,6 +97,18 @@ const Dashboard = () => {
   };
 
   const displayTopics = searchQuery ? searchResults : topics;
+
+  const getActionType = (topic) => {
+    const actions = [];
+    if (topic.created) actions.push('Created');
+    if (topic.addedNode) actions.push('Added Node');
+    if (topic.posted) actions.push('Posted');
+    return actions.join(', ');
+  };
+
+  const handleTopicClick = (topicId) => {
+    navigate(`/topic/${topicId}`);
+  };
 
   return (
     <div className="dashboard-container">
@@ -159,7 +174,7 @@ const Dashboard = () => {
               displayTopics.map((topic) => (
                 <div key={topic.id} className="topic-card">
                   <h3>{topic.topicName || topic.name}</h3>
-                  <p>Interactions: {topic.interactions || 0}</p>
+                  <p>Interactions: {topic.interactionCount || 0}</p>
                   <Link to={`/topic/${topic.id}`} className="view-topic-button">
                     View Topic
                   </Link>
@@ -167,10 +182,38 @@ const Dashboard = () => {
               ))
             )}
           </div>
+
+          <div style={{ margin: '40px 0' }}></div> 
+          
+          <div className="interacted-topics-section">
+            <h2>My Interactions</h2>
+            {userTopics.length === 0 ? (
+              <p>No interactions yet</p>
+            ) : (
+              <div className="topics-list">
+                {userTopics.map((topic) => (
+                  <div 
+                    key={topic.topic_id} 
+                    className="topic-card"
+                    onClick={() => handleTopicClick(topic.topic_id)}
+                  >
+                    <h3>{topic.topic_name}</h3>
+                    <div className="topic-actions">
+                      <span className="action-type">{getActionType(topic)}</span>
+                      <span className="action-date">
+                        {new Date(topic.actionDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

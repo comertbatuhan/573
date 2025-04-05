@@ -1,157 +1,122 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import './Forum.css';
+import React, { useEffect, useState, useCallback} from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const Forum = () => {
-  const { topicId } = useParams();
-  const [topic, setTopic] = useState(null);
+  const {topicId } = useParams(); 
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showAddPost, setShowAddPost] = useState(false);
   const [newPost, setNewPost] = useState('');
+  const [showForm, setShowForm] = useState(false);
 
+  const fetchPosts = useCallback(async () => {   
+    const response = await fetch(`http://localhost:8000/api/forums/posts/?topic=${topicId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,  
+      }
+    });
+    const data = await response.json();
+    const sortedData = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    setPosts(sortedData);
+  }, [topicId]);  
+  
   useEffect(() => {
-    fetchTopic();
     fetchPosts();
-  }, [topicId]);
+  }, [fetchPosts]);
 
-  const fetchTopic = async () => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/topics/${topicId}/`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch topic');
-      }
-
-      const data = await response.json();
-      setTopic(data);
-    } catch (error) {
-      setError('Failed to load topic');
+  const handleCreatePost = async () => {
+    if (newPost.length > 500) {
+      alert('Character limit exceeded!');
+      return;
     }
+
+    await fetch('http://localhost:8000/api/forums/posts/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({ content: newPost, topic: topicId })
+    });
+
+    setNewPost('');
+    setShowForm(false);
+    fetchPosts();
   };
 
-  const fetchPosts = async () => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/posts/?topic=${topicId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch posts');
-      }
-
-      const data = await response.json();
-      setPosts(data);
-      setLoading(false);
-    } catch (error) {
-      setError('Failed to load posts');
-      setLoading(false);
-    }
+  const handleDeletePost = async (postId) => {
+    await fetch(`http://localhost:8000/api/forums/posts/${postId}/`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,  
+      },
+    });
+    fetchPosts();
   };
 
-  const handleSubmitPost = async (e) => {
-    e.preventDefault();
-    if (!newPost.trim()) return;
-
-    try {
-      const response = await fetch('http://localhost:8000/api/posts/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          content: newPost,
-          topic: topicId
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create post');
-      }
-
-      const newPostData = await response.json();
-      setPosts([newPostData, ...posts]);
-      setNewPost('');
-      setShowAddPost(false);
-    } catch (error) {
-      setError('Failed to create post');
-    }
+  const handleAtClick = (relatedTopicId) => {
+    navigate(`topic/${relatedTopicId}`);
   };
 
-  if (loading) return <div className="forum-container">Loading...</div>;
-  if (error) return <div className="forum-container error-message">{error}</div>;
+  const parseContent = (content) => {
+    const parts = content.split(/(@\w+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        const topicName = part.substring(1);
+        return (
+          <span
+            key={index}
+            onClick={() => handleAtClick(topicName)}
+            style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
 
   return (
-    <div className="forum-container">
-      <div className="forum-header">
-        <h1>{topic?.topicName}</h1>
-        <button
-          className="add-post-button"
-          onClick={() => setShowAddPost(true)}
-        >
-          Add Post
+    <div style={styles.page}>
+      <h1 style={styles.header}>Forum - Topic {topicId}</h1>
+
+      <div style={styles.buttonsContainer}>
+        <button style={styles.button} onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Cancel' : 'Create Post'}
+        </button>
+        <button style={styles.button} onClick={() => navigate('/graph')}>
+          Go to Knowledge Graph
+        </button>
+        <button style={styles.button} onClick={() => navigate('/dashboard')}>
+          Back to Dashboard
         </button>
       </div>
 
-      {showAddPost && (
-        <div className="add-post-form">
+      {showForm && (
+        <div style={styles.formContainer}>
           <textarea
+            style={styles.textarea}
             value={newPost}
             onChange={(e) => setNewPost(e.target.value)}
-            placeholder="Write your post here..."
-            className="post-textarea"
+            maxLength={500}
+            placeholder="Write your post... (max 500 characters)"
           />
-          <div className="form-actions">
-            <button onClick={handleSubmitPost} className="submit-button">
-              Submit
-            </button>
-            <button
-              onClick={() => {
-                setShowAddPost(false);
-                setNewPost('');
-              }}
-              className="cancel-button"
-            >
-              Cancel
-            </button>
-          </div>
+          <button style={styles.submitButton} onClick={handleCreatePost}>Submit</button>
         </div>
       )}
 
-      <div className="posts-list">
+      <div style={styles.postsContainer}>
         {posts.map((post) => (
-          <div key={post.id} className="post-card">
-            <div className="post-content">
-              <p>{post.content}</p>
-              <div className="post-footer">
-                <div className="post-info">
-                  <span className="post-date">
-                    {new Date(post.created_at).toLocaleDateString()}
-                  </span>
-                  <span className="post-author">{post.author.username}</span>
-                </div>
-                <div className="post-author-image">
-                  {post.author.profile_image ? (
-                    <img
-                      src={post.author.profile_image}
-                      alt={post.author.username}
-                      className="author-image"
-                    />
-                  ) : (
-                    <div className="author-image-placeholder">
-                      {post.author.username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              </div>
+          <div key={post.id} style={styles.postCard}>
+            <div style={styles.threeDots}>
+              <button style={styles.dotButton} onClick={() => handleDeletePost(post.id)}>⋮</button>
+            </div>
+            <div style={styles.postContent}>
+              {parseContent(post.content)}
+            </div>
+            <div style={styles.postFooter}>
+              {post.username} | {new Date(post.created_at).toLocaleString()}
             </div>
           </div>
         ))}
@@ -160,4 +125,86 @@ const Forum = () => {
   );
 };
 
-export default Forum; 
+const styles = {
+  page: {
+    maxWidth: '800px',
+    margin: '0 auto',
+    padding: '20px',
+    fontFamily: 'Arial, sans-serif',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '20px',
+  },
+  buttonsContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '10px',
+    marginBottom: '20px',
+  },
+  button: {
+    padding: '10px 20px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+  },
+  formContainer: {
+    marginBottom: '30px',
+    textAlign: 'center',
+  },
+  textarea: {
+    width: '100%',
+    height: '100px',
+    padding: '10px',
+    fontSize: '16px',
+    marginBottom: '10px',
+  },
+  submitButton: {
+    padding: '10px 20px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+  },
+  postsContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  postCard: {
+    position: 'relative',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    padding: '20px',
+    backgroundColor: '#f9f9f9',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+    minHeight: '120px',
+  },
+  postContent: {
+    fontSize: '16px',
+    marginBottom: '30px',
+  },
+  postFooter: {
+    position: 'absolute',
+    bottom: '10px',
+    right: '15px',
+    fontSize: '12px',
+    color: 'gray',
+  },
+  threeDots: {
+    position: 'absolute',
+    top: '10px',
+    right: '15px',
+  },
+  dotButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    cursor: 'pointer',
+  }
+};
+
+export default Forum;

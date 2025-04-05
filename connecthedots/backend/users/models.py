@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True)  # Used for password reset only
+    email = models.EmailField(unique=True)  
     date_of_sign = models.DateTimeField(default=timezone.now)
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
 
@@ -14,4 +14,4 @@ class User(AbstractUser):
         db_table = 'users'
         verbose_name = 'User'
         verbose_name_plural = 'Users'
-        indexes = [models.Index(fields=['email'])]  # Optimized for email lookup
+        indexes = [models.Index(fields=['email'])]

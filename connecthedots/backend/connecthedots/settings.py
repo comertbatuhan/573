@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     # The apps created by me
     "connections",
     "forums",
-    "graphs",
     "nodes",
     "topics",
     "usernodes",

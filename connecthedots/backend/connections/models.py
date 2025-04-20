@@ -24,6 +24,13 @@ class Connection(models.Model):
         related_name='created_connections'
     )
 
+    topic = models.ForeignKey(
+        'topics.Topic',
+        on_delete=models.CASCADE,
+        related_name='connections'
+    )
+
+
     class Meta:
         db_table = 'connections'
         indexes = [

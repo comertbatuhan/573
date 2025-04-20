@@ -7,6 +7,8 @@ import Dashboard from './components/Dashboard';
 import Profile from './components/Profile';
 import Forum from './components/Forum';
 import './App.css';
+import Graph from './components/Graph';
+
 
 function App() {
   return (
@@ -19,6 +21,7 @@ function App() {
           <Route path="/topic/:topicId" element={<Forum />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/graph" element={<Graph />} />
         </Routes>
       </div>
     </Router>

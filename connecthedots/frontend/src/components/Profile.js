@@ -256,6 +256,31 @@ const Profile = () => {
             </button>
           </div>
         </div>
+
+        <div className="profile-section">
+          <h2>My Interactions</h2>
+          {userTopics.length === 0 ? (
+            <p className="no-topics">No interactions yet</p>
+          ) : (
+            <div className="topics-list">
+              {userTopics.map((topic) => (
+                <div 
+                  key={topic.topic_id} 
+                  className="topic-card"
+                  onClick={() => handleTopicClick(topic.topic_id)}
+                >
+                  <h3>{topic.topic_name}</h3>
+                  <div className="topic-actions">
+                    <span className="action-type">{getActionType(topic)}</span>
+                    <span className="action-date">
+                      {new Date(topic.actionDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {showUpdateForm && (

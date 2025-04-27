@@ -7,7 +7,7 @@ from .models import User
 
 class UserTests(APITestCase):
     def setUp(self):
-        # Create test user
+        # test user
         self.user_data = {
             'username': 'testuser',
             'email': 'test@example.com',
@@ -28,15 +28,15 @@ class UserTests(APITestCase):
         }
         response = self.client.post(self.register_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(User.objects.count(), 2)  # Including the one from setUp
+        self.assertEqual(User.objects.count(), 2)  # the one from setup
         self.assertEqual(User.objects.get(username='newuser').email, 'new@example.com')
 
     def test_user_registration_invalid_data(self):
         """Test user registration with invalid data"""
         data = {
-            'username': '',  # Empty username
+            'username': '',  # Empty 
             'email': 'invalid-email',
-            'password': '123'  # Too short password
+            'password': '123'  # Too short 
         }
         response = self.client.post(self.register_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

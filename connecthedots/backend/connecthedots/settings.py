@@ -90,17 +90,14 @@ WSGI_APPLICATION = "connecthedots.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'connecthedots',  # Change this to your DB name
-        'USER': 'postgres',     # Change this to your DB user
-        'PASSWORD': 'postgres', # Change this to your DB password
+        'NAME': 'connecthedots',  
+        'USER': 'postgres',     
+        'PASSWORD': 'postgres', 
         'HOST': 'localhost',
         'PORT': '5432',
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -1,6 +1,5 @@
 from django.db import models
 
-# Create your models here.
 class Wiki(models.Model):
     qID = models.CharField(max_length=100, unique=True, primary_key=True)
     label = models.CharField(max_length=255)
@@ -14,4 +13,4 @@ class Wiki(models.Model):
         db_table = 'wikis'
         verbose_name = 'Wiki'
         verbose_name_plural = 'Wikis'
-        indexes = [models.Index(fields=['qID'])]  # Optimized for email lookup
+        indexes = [models.Index(fields=['qID'])]  

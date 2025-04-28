@@ -119,6 +119,7 @@ AUTH_USER_MODEL = 'users.User'
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://18.233.148.77:3000"
 ]
 
 CORS_ALLOW_CREDENTIALS = True

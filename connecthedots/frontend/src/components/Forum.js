@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback} from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import API_URL from '../config';
 
 const Forum = () => {
   const {topicId } = useParams(); 
@@ -9,7 +10,7 @@ const Forum = () => {
   const [showForm, setShowForm] = useState(false);
 
   const fetchPosts = useCallback(async () => {   
-    const response = await fetch(`http://localhost:8000/api/forums/posts/?topic=${topicId}`, {
+    const response = await fetch(`${API_URL}/api/forums/posts/?topic=${topicId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,  
       }
@@ -29,7 +30,7 @@ const Forum = () => {
       return;
     }
 
-    await fetch('http://localhost:8000/api/forums/posts/', {
+    await fetch(`${API_URL}/api/forums/posts/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,7 +45,7 @@ const Forum = () => {
   };
 
   const handleDeletePost = async (postId) => {
-    await fetch(`http://localhost:8000/api/forums/posts/${postId}/`, {
+    await fetch(`${API_URL}/api/forums/posts/${postId}/`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

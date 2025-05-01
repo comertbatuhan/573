@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
+import API_URL from '../config';
 
 const Dashboard = () => {
   const [topics, setTopics] = useState([]);
@@ -20,7 +21,7 @@ const Dashboard = () => {
 
   const fetchTopics = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/topics/', {
+      const response = await fetch(`${API_URL}/api/topics/`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
@@ -36,7 +37,7 @@ const Dashboard = () => {
 
   const fetchUserTopics = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/usertopics/user-topics/', {
+      const response = await fetch(`${API_URL}/api/usertopics/user-topics/`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
 
@@ -56,7 +57,7 @@ const Dashboard = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/topics/?search=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`${API_URL}/api/topics/?search=${encodeURIComponent(searchQuery)}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
 
@@ -72,7 +73,7 @@ const Dashboard = () => {
     if (!newTopicName.trim()) return;
 
     try {
-      const response = await fetch('http://localhost:8000/api/topics/', {
+      const response = await fetch(`${API_URL}/api/topics/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

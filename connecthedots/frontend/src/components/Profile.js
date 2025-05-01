@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './Profile.css';
+import API_URL from '../config';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const Profile = () => {
 
   const fetchUserTopics = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/usertopics/user-topics/', {
+      const response = await fetch(`${API_URL}/api/usertopics/user-topics/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -82,7 +83,7 @@ const Profile = () => {
         formDataToSend.append('profile_image', profileImage);
       }
 
-      const response = await fetch('http://localhost:8000/api/users/update-profile/', {
+      const response = await fetch(`${API_URL}/api/users/update-profile/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -116,7 +117,7 @@ const Profile = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/users/change-password/', {
+      const response = await fetch(`${API_URL}/api/users/change-password/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +153,7 @@ const Profile = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/users/delete-profile/', {
+      const response = await fetch(`${API_URL}/api/users/delete-profile/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

@@ -3,6 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import axios from 'axios';
 import './Graph.css';
 import { useParams } from 'react-router-dom';
+import API_URL from '../config';
 
 const Graph = () => {
   const [nodes, setNodes] = useState([]);
@@ -25,7 +26,7 @@ const Graph = () => {
 
   const fetchNodes = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/nodes/');
+      const response = await axios.get(`${API_URL}/api/nodes/`);
       setNodes(response.data);
     } catch (error) {
       console.error('Error fetching nodes:', error);
@@ -34,7 +35,7 @@ const Graph = () => {
 
   const fetchConnections = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/connections/');
+      const response = await axios.get(`${API_URL}/api/connections/`);
       setLinks(response.data);
     } catch (error) {
       console.error('Error fetching connections:', error);
@@ -43,7 +44,7 @@ const Graph = () => {
 
   const searchWikidata = async (query) => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/wikis/search/?q=${query}`);
+      const response = await axios.get(`${API_URL}/api/wikis/search/?q=${query}`);
       setWikidataResults(response.data);
     } catch (error) {
       console.error('Error searching Wikidata:', error);
@@ -59,7 +60,7 @@ const Graph = () => {
         description: manualAttributes.description
       };
 
-      await axios.post('http://localhost:8000/api/nodes/create/', nodeData);
+      await axios.post(`${API_URL}/api/nodes/create/`, nodeData);
       setShowAddNodeForm(false);
       setNodeName('');
       setWikidataResults([]);

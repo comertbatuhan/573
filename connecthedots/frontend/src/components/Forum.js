@@ -86,7 +86,7 @@ const Forum = () => {
         <button style={styles.button} onClick={() => setShowForm(!showForm)}>
           {showForm ? 'Cancel' : 'Create Post'}
         </button>
-        <button style={styles.button} onClick={() => navigate('/graph')}>
+        <button style={styles.button} onClick={() => navigate(`/topic/${topicId}/graph`)}>
           Go to Knowledge Graph
         </button>
         <button style={styles.button} onClick={() => navigate('/dashboard')}>

@@ -21,7 +21,7 @@ function App() {
           <Route path="/topic/:topicId" element={<Forum />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/graph" element={<Graph />} />
+          <Route path="/topic/:topicId/graph" element={<Graph />} />
         </Routes>
       </div>
     </Router>

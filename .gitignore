@@ -75,3 +75,4 @@ celerybeat.pid
 dmypy.json
 .pyre/ 
 *.pem
+notes.txt

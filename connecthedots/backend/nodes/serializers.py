@@ -4,4 +4,5 @@ from .models import Node
 class NodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Node
-        fields = '__all__'
+        fields = ['id', 'manual_name', 'qid', 'description', 'creation_date', 'created_by_user', 'topic']
+        read_only_fields = ['created_by_user']

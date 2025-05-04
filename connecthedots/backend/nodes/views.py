@@ -9,31 +9,40 @@ from rest_framework.decorators import permission_classes
 
 @api_view(['GET'])
 def list_nodes(request):
-    nodes = Node.objects.all()
+    topic_id = request.query_params.get('topic_id')
+    if topic_id:
+        nodes = Node.objects.filter(topic_id=topic_id)
+    else:
+        nodes = Node.objects.all()
     serializer = NodeSerializer(nodes, many=True)
     return Response(serializer.data)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_node(request):
     data = request.data.copy()
-    qid = data.get('qid')
-    
-    if qid:
-        wiki, _ = Wiki.objects.get_or_create(qid=qid)
-        data['qid'] = wiki.id
-    else:
-        data['qid'] = None
 
-    topic_ids = data.pop('topic_ids', [])
+    qid = data.get('qid')
+    if qid:
+        wiki, _ = Wiki.objects.get_or_create(qID=qid, defaults={"label": "", "description": ""})
+        data['qid'] = wiki.qID  
+    else:
+        data.pop('qid', None) 
+
+
+    topic_id = data.pop('topic_id', None)
+    if not topic_id:
+        return Response({'error': 'topic_id is required'}, status=400)
+
+    data['topic'] = topic_id
 
     serializer = NodeSerializer(data=data)
     if serializer.is_valid():
         node = serializer.save(created_by_user=request.user)
-        if topic_ids:
-            node.topics.set(topic_ids)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(NodeSerializer(node).data, status=201)
+    return Response(serializer.errors, status=400)
+
 
     
 @api_view(['PUT', 'DELETE'])

@@ -11,8 +11,9 @@ class Node(models.Model):
         related_name='nodes'
     )
     creation_date = models.DateTimeField(auto_now_add=True)
-    topics = models.ManyToManyField(
+    topic = models.ForeignKey(
         'topics.Topic',
+        on_delete=models.CASCADE,
         related_name='nodes'
     )
     created_by_user = models.ForeignKey(
@@ -20,6 +21,7 @@ class Node(models.Model):
         on_delete=models.CASCADE,
         related_name='created_nodes'
     )
+    description = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = 'nodes'

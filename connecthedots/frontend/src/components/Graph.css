@@ -137,6 +137,7 @@
   border-style: solid;
   background: white;
   border-color: #1a192b;
+  z-index: 1;
 }
 
 .react-flow__node:hover {
@@ -183,13 +184,25 @@
   background: #555;
 }
 
+.react-flow__viewport {
+  z-index: 0;
+}
+
+.react-flow__edges {
+  z-index: 0;
+}
+
 .custom-node {
   padding: 10px;
   border-radius: 5px;
   background: white;
-  border: 1px solid #1a192b;
+  border: 2px solid #1a192b;
   width: 200px;
+  min-height: 50px;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
 }
 
 .custom-node.selected-node {
@@ -204,17 +217,26 @@
   margin-bottom: 8px;
   text-align: center;
   color: #1a192b;
+  padding: 4px;
+  background: #f8f8f8;
+  border-radius: 3px;
 }
 
 .node-content {
   font-size: 12px;
+  padding: 4px;
 }
 
 .node-attribute {
   margin: 4px 0;
   word-break: break-word;
+  padding: 4px;
+  background: #f8f8f8;
+  border-radius: 3px;
 }
 
 .node-attribute strong {
   color: #666;
+  display: block;
+  margin-bottom: 2px;
 } 

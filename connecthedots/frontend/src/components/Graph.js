@@ -34,10 +34,10 @@ const CustomNode = ({ data, selected }) => {
       <div className="node-label">{data.label}</div>
       <div className="node-content">
         {data.attributes?.description && (
-          <div className="node-attribute">
-            <strong>Description:</strong> {data.attributes.description}
-          </div>
-        )}
+    <div className="node-attribute">
+      <strong>Description:</strong> {data.attributes.description}
+    </div>
+  )}
       </div>
     </div>
   );
@@ -84,26 +84,52 @@ const Graph = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!topicId) return;
+      if (!topicId) {
+        console.error('No topic ID provided');
+        return;
+      }
 
       try {
+        console.log('Fetching nodes for topic:', topicId);
         const nodesResponse = await axios.get(`${API_URL}/api/nodes/?topic_id=${topicId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
-        const nodesData = nodesResponse.data.map(node => ({
-          id: node.id,
-          type: 'custom',
-          position: { x: Math.random() * 500, y: Math.random() * 500 },
-          data: {
-            label: node.manual_name,
-            attributes: {
-              description: node.description,
-              qid: node.qid
+        console.log("Raw nodes data from backend:", nodesResponse.data);
+        
+        if (!nodesResponse.data || nodesResponse.data.length === 0) {
+          console.warn('No nodes returned from backend');
+          return;
+        }
+
+        // Calculate initial positions in a grid layout
+        const gridSize = Math.ceil(Math.sqrt(nodesResponse.data.length));
+        const nodeSpacing = 250; // Space between nodes
+
+        const nodesData = nodesResponse.data.map((node, index) => {
+          const row = Math.floor(index / gridSize);
+          const col = index % gridSize;
+          const x = col * nodeSpacing + 100; // Start at x=100
+          const y = row * nodeSpacing + 100; // Start at y=100
+
+          const transformedNode = {
+            id: node.id.toString(), // Ensure ID is a string
+            type: 'custom',
+            position: { x, y },
+            data: {
+              label: node.manual_name || 'Untitled',
+              attributes: {
+                description: node.description || '',
+                qid: node.qid || null
+              }
             }
-          }
-        }));
+          };
+          console.log('Transformed node:', transformedNode);
+          return transformedNode;
+        });
+        
+        console.log('Setting nodes in state:', nodesData);
         setNodes(nodesData);
 
         const connectionsResponse = await axios.get(`${API_URL}/api/connections/?topic_id=${topicId}`, {
@@ -111,10 +137,12 @@ const Graph = () => {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
+        console.log("Raw connections data:", connectionsResponse.data);
+        
         const edgesData = connectionsResponse.data.map(connection => ({
-          id: connection.id,
-          source: connection.firstNodeID,
-          target: connection.secondNodeID,
+          id: connection.id.toString(), // Ensure ID is a string
+          source: connection.firstNodeID.toString(), // Ensure source is a string
+          target: connection.secondNodeID.toString(), // Ensure target is a string
           label: connection.relationName,
           type: 'smoothstep',
           animated: true,
@@ -124,14 +152,36 @@ const Graph = () => {
           labelBgPadding: [4, 4],
           labelBgBorderRadius: 2,
         }));
+        console.log('Setting edges in state:', edgesData);
         setEdges(edgesData);
       } catch (error) {
         console.error('Error fetching data:', error);
+        if (error.response) {
+          console.error('Error response:', error.response.data);
+          console.error('Error status:', error.response.status);
+        }
       }
     };
 
     fetchData();
   }, [topicId]);
+
+  // Add a new useEffect to handle initial fit view
+  useEffect(() => {
+    if (nodes.length > 0) {
+      // Force a re-render of the graph after nodes are loaded
+      const timer = setTimeout(() => {
+        const reactFlowInstance = document.querySelector('.react-flow');
+        if (reactFlowInstance) {
+          reactFlowInstance.style.opacity = '0';
+          setTimeout(() => {
+            reactFlowInstance.style.opacity = '1';
+          }, 50);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [nodes]);
 
   const handleNodeClick = (event, node) => {
     setSelectedNode(node);
@@ -213,10 +263,11 @@ const Graph = () => {
 
       const nodeData = {
         manual_name: nodeName,
-        qid: selectedWikidataItem?.id || null,
-        topic_ids: [parseInt(topicId)],
+        qid: selectedWikidataItem?.id ?? null,
+        topic_id: parseInt(topicId), 
         description: nodeAttributes.description || ''
       };
+      
 
       let response;
       if (selectedNode) {
@@ -507,10 +558,11 @@ const Graph = () => {
     try {
       const nodeData = {
         manual_name: nodeName,
-        qid: selectedWikidataItem?.qID || null,
-        topic_ids: [parseInt(topicId)], 
-        description: manualAttributes.description
+        qid: selectedWikidataItem?.id || null,
+        topic_id: parseInt(topicId), 
+        description: nodeAttributes.description || ''
       };
+      
 
       await axios.post(`${API_URL}/api/nodes/create/`, nodeData);
       setShowAddNodeForm(false);
@@ -560,7 +612,7 @@ const Graph = () => {
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <Box sx={{ position: 'absolute', top: 10, left: 10, zIndex: 1000 }}>
         <Button variant="contained" onClick={handleNodeAdd} sx={{ mr: 1 }}>
           Add Node
@@ -605,6 +657,9 @@ const Graph = () => {
         onEdgeClick={handleEdgeClick}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 2 }}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        style={{ background: '#f8f8f8' }}
         defaultEdgeOptions={{
           type: 'smoothstep',
           animated: true,

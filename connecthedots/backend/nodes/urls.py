@@ -1,8 +1,10 @@
-from django.urls import path
-from . import views
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import NodeViewSet
+
+router = DefaultRouter()
+router.register('', NodeViewSet, basename='node')
 
 urlpatterns = [
-    path('', views.list_nodes),
-    path('create/', views.create_node),
-    path('<int:pk>/', views.update_or_delete_node),
+    path('', include(router.urls)),
 ]

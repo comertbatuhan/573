@@ -6,6 +6,9 @@ import ReactFlow, {
   addEdge,
   useNodesState,
   useEdgesState,
+  Handle,
+  Position,
+  SmoothStepEdge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import {
@@ -23,36 +26,41 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import axios from 'axios';
 import './Graph.css';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import API_URL from '../config';
 import { v4 as uuidv4 } from 'uuid';
 
-// Custom node component
-const CustomNode = ({ data, selected }) => {
-  return (
-    <div className={`custom-node ${selected ? 'selected-node' : ''}`}>
-      <div className="node-label">{data.label}</div>
-      <div className="node-content">
-        {data.attributes?.description && (
-    <div className="node-attribute">
-      <strong>Description:</strong> {data.attributes.description}
-    </div>
-  )}
+const CustomNode = ({ data, selected }) => (
+  <div className={`custom-node ${selected ? 'selected-node' : ''}`}>
+    <Handle
+      type="target"
+      position={Position.Top}
+      style={{ background: '#555', width: 10, height: 10 }}
+    />
+    <div className="node-label">{data.label}</div>
+    {data.attributes?.description && (
+      <div className="node-attribute">
+        <strong>Description:</strong> {data.attributes.description}
       </div>
-    </div>
-  );
-};
+    )}
+    <Handle
+      type="source"
+      position={Position.Bottom}
+      style={{ background: '#555', width: 10, height: 10 }}
+    />
+  </div>
+);
 
-const nodeTypes = {
-  custom: CustomNode,
-};
+const nodeTypes = { custom: CustomNode };
 
 const initialNodes = [];
 const initialEdges = [];
 
 const Graph = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const { topicId } = useParams();
+  const navigate = useNavigate();
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [nodeDialogOpen, setNodeDialogOpen] = useState(false);
   const [edgeDialogOpen, setEdgeDialogOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -62,7 +70,6 @@ const Graph = () => {
   const [edgeLabel, setEdgeLabel] = useState('');
   const [sourceNode, setSourceNode] = useState(null);
   const [targetNode, setTargetNode] = useState(null);
-  const { topicId } = useParams();
   const [wikidataResults, setWikidataResults] = useState([]);
   const [selectedWikidataItem, setSelectedWikidataItem] = useState(null);
   const [showAddNodeForm, setShowAddNodeForm] = useState(false);
@@ -74,6 +81,9 @@ const Graph = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredNodes, setFilteredNodes] = useState([]);
   const [showNodeSearch, setShowNodeSearch] = useState(false);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [nodePositions, setNodePositions] = useState({});
+  const [topicName, setTopicName] = useState('');
 
   useEffect(() => {
     if (!topicId) {
@@ -83,93 +93,95 @@ const Graph = () => {
   }, [topicId]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!topicId) {
-        console.error('No topic ID provided');
-        return;
-      }
-
+    const fetchTopicName = async () => {
       try {
-        console.log('Fetching nodes for topic:', topicId);
-        const nodesResponse = await axios.get(`${API_URL}/api/nodes/?topic_id=${topicId}`, {
+        const response = await fetch(`${API_URL}/api/topics/${topicId}/`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
           }
         });
-        console.log("Raw nodes data from backend:", nodesResponse.data);
+        if (!response.ok) throw new Error('Failed to fetch topic');
+        const data = await response.json();
+        setTopicName(data.topicName);
+      } catch (error) {
+        console.error('Error fetching topic:', error);
+      }
+    };
+
+    fetchTopicName();
+  }, [topicId]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
         
-        if (!nodesResponse.data || nodesResponse.data.length === 0) {
-          console.warn('No nodes returned from backend');
-          return;
-        }
+        const nodesResp = await axios.get(
+          `${API_URL}/api/nodes/?topic_id=${topicId}`,
+          { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
+        );
 
-        // Calculate initial positions in a grid layout
-        const gridSize = Math.ceil(Math.sqrt(nodesResponse.data.length));
-        const nodeSpacing = 250; // Space between nodes
+        const nodesData = nodesResp.data.map((node) => {
+          
+          const position = {
+            x: node.position_x || 0,
+            y: node.position_y || 0
+          };
 
-        const nodesData = nodesResponse.data.map((node, index) => {
-          const row = Math.floor(index / gridSize);
-          const col = index % gridSize;
-          const x = col * nodeSpacing + 100; // Start at x=100
-          const y = row * nodeSpacing + 100; // Start at y=100
+          
+          if (!node.position_x && !node.position_y) {
+            const gridSize = Math.ceil(Math.sqrt(nodesResp.data.length));
+            const nodeSpacing = 250;
+            const index = nodesResp.data.indexOf(node);
+            const row = Math.floor(index / gridSize);
+            const col = index % gridSize;
+            position.x = col * nodeSpacing + 100;
+            position.y = row * nodeSpacing + 100;
+          }
 
-          const transformedNode = {
-            id: node.id.toString(), // Ensure ID is a string
+          return {
+            id: node.id.toString(),
             type: 'custom',
-            position: { x, y },
+            position,
             data: {
               label: node.manual_name || 'Untitled',
-              attributes: {
-                description: node.description || '',
-                qid: node.qid || null
-              }
+              attributes: { description: node.description || '', qid: node.qid || null }
             }
           };
-          console.log('Transformed node:', transformedNode);
-          return transformedNode;
         });
-        
-        console.log('Setting nodes in state:', nodesData);
         setNodes(nodesData);
 
-        const connectionsResponse = await axios.get(`${API_URL}/api/connections/?topic_id=${topicId}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        console.log("Raw connections data:", connectionsResponse.data);
         
-        const edgesData = connectionsResponse.data.map(connection => ({
-          id: connection.id.toString(), // Ensure ID is a string
-          source: connection.firstNodeID.toString(), // Ensure source is a string
-          target: connection.secondNodeID.toString(), // Ensure target is a string
-          label: connection.relationName,
+        const connsResp = await axios.get(
+          `${API_URL}/api/connections/?topic_id=${topicId}`,
+          { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
+        );
+        const edgesData = connsResp.data.map(conn => ({
+          id: conn.id.toString(),
+          source: conn.firstNodeID.toString(),
+          target: conn.secondNodeID.toString(),
+          label: conn.relationName,
           type: 'smoothstep',
           animated: true,
-          style: { stroke: '#555' },
+          style: { stroke: '#555', strokeWidth: 2 },
           labelStyle: { fill: '#000', fontWeight: 700 },
           labelBgStyle: { fill: '#fff' },
           labelBgPadding: [4, 4],
           labelBgBorderRadius: 2,
         }));
-        console.log('Setting edges in state:', edgesData);
         setEdges(edgesData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        if (error.response) {
-          console.error('Error response:', error.response.data);
-          console.error('Error status:', error.response.status);
-        }
+
+      } catch (err) {
+        console.error('Error fetching graph data:', err);
       }
     };
 
     fetchData();
   }, [topicId]);
 
-  // Add a new useEffect to handle initial fit view
+  
   useEffect(() => {
     if (nodes.length > 0) {
-      // Force a re-render of the graph after nodes are loaded
+      
       const timer = setTimeout(() => {
         const reactFlowInstance = document.querySelector('.react-flow');
         if (reactFlowInstance) {
@@ -184,9 +196,23 @@ const Graph = () => {
   }, [nodes]);
 
   const handleNodeClick = (event, node) => {
-    setSelectedNode(node);
-    setNodeName(node.data.label);
-    setNodeAttributes(node.data.attributes || {});
+    if (isSelectingNodes) {
+      setSelectedNodesForEdge(prev => {
+        const newSelection = [...prev, node];
+        if (newSelection.length === 2) {
+          setIsSelectingNodes(false);
+          setSourceNode(newSelection[0]);
+          setTargetNode(newSelection[1]);
+          setEdgeDialogOpen(true);
+          return [];
+        }
+        return newSelection;
+      });
+    } else {
+      setSelectedNode(node);
+      setNodeName(node.data.label);
+      setNodeAttributes(node.data.attributes || {});
+    }
   };
 
   const handleEdgeClick = (event, edge) => {
@@ -227,31 +253,12 @@ const Graph = () => {
   };
 
   const handleWikidataSelect = (entity) => {
-    const newNode = {
-      id: selectedNode ? selectedNode.id : uuidv4(),
-      type: 'custom',
-      position: selectedNode ? selectedNode.position : { x: Math.random() * 500, y: Math.random() * 500 },
-      data: {
-        label: entity.label,
-        attributes: {
-          description: entity.description || ''
-        }
-      }
-    };
-
-    if (selectedNode) {
-      setNodes((nds) =>
-        nds.map((node) => (node.id === selectedNode.id ? newNode : node))
-      );
-    } else {
-      setNodes((nds) => [...nds, newNode]);
-    }
-
-    setNodeDialogOpen(false);
-    setWikidataResults([]);
-    setSelectedWikidataItem(null);
-    setNodeName('');
-    setNodeAttributes({});
+    setSelectedWikidataItem(entity);
+    setNodeName(entity.label);
+    setNodeAttributes({
+      ...nodeAttributes,
+      description: entity.description || ''
+    });
   };
 
   const handleNodeSave = async () => {
@@ -263,15 +270,18 @@ const Graph = () => {
 
       const nodeData = {
         manual_name: nodeName,
-        qid: selectedWikidataItem?.id ?? null,
-        topic_id: parseInt(topicId), 
-        description: nodeAttributes.description || ''
+        description: nodeAttributes.description || '',
+        qid: nodeAttributes.qid || null,
+        topic: parseInt(topicId)
       };
       
+      if (selectedWikidataItem?.id) {
+        nodeData.qid = selectedWikidataItem.id;
+      }
 
       let response;
       if (selectedNode) {
-        // Update existing node
+        
         response = await axios.put(
           `${API_URL}/api/nodes/${selectedNode.id}/`,
           nodeData,
@@ -283,9 +293,9 @@ const Graph = () => {
           }
         );
       } else {
-        // Create new node
+        
         response = await axios.post(
-          `${API_URL}/api/nodes/create/`,
+          `${API_URL}/api/nodes/`,
           nodeData,
           {
             headers: {
@@ -296,54 +306,54 @@ const Graph = () => {
         );
       }
 
-      // Refresh nodes from the server
-      const nodesResponse = await axios.get(`${API_URL}/api/nodes/?topic_id=${topicId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      const nodesData = nodesResponse.data.map(node => ({
-        id: node.id,
-        type: 'custom',
-        position: { x: Math.random() * 500, y: Math.random() * 500 },
-        data: {
-          label: node.manual_name,
-          attributes: {
-            description: node.description,
-            qid: node.qid
-          }
-        }
-      }));
-
-      setNodes(nodesData);
       setNodeDialogOpen(false);
       setWikidataResults([]);
       setSelectedWikidataItem(null);
       setNodeName('');
       setNodeAttributes({});
+      setSelectedNode(null);
+      setNeedsRefresh(true);
 
     } catch (error) {
       console.error('Error saving node:', error);
       if (error.response) {
-        console.error('Error response:', error.response.data);
-        alert(`Failed to save node: ${error.response.data.detail || error.response.data.message || JSON.stringify(error.response.data)}`);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+        console.error('Error response data:', error.response.data);
+        alert(`Failed to save node: ${JSON.stringify(error.response.data)}`);
+      } else if (error.request) {
+        console.error('Error request:', error.request);
+        alert('Failed to get a response. Please check your connection.');
       } else {
+        console.error('Error message:', error.message);
         alert('Failed to save node. Please try again.');
       }
     }
   };
 
-  const handleNodeDelete = () => {
+  const handleNodeDelete = async () => {
     if (selectedNode) {
-      setNodes((nds) => nds.filter((node) => node.id !== selectedNode.id));
-      setEdges((eds) =>
-        eds.filter(
-          (edge) =>
-            edge.source !== selectedNode.id && edge.target !== selectedNode.id
-        )
-      );
-      setSelectedNode(null);
+      try {
+        await axios.delete(
+          `${API_URL}/api/nodes/${selectedNode.id}/`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        setSelectedNode(null);
+        setNeedsRefresh(true);
+      } catch (error) {
+        console.error('Error deleting node:', error);
+        if (error.response) {
+          console.error('Error response data:', error.response.data);
+          alert(`Failed to delete node: ${JSON.stringify(error.response.data)}`);
+        } else {
+          alert('Failed to delete node. Please try again.');
+        }
+      }
     }
   };
 
@@ -355,25 +365,6 @@ const Graph = () => {
     setTargetNode(null);
   };
 
-  const handleNodeSelectForEdge = (event, node) => {
-    if (isSelectingNodes) {
-      setSelectedNodesForEdge(prev => {
-        if (prev.length === 1 && prev[0].id === node.id) {
-          return prev;
-        }
-        
-        const newSelection = [...prev, node];
-        if (newSelection.length === 2) {
-          setIsSelectingNodes(false);
-          setSourceNode(newSelection[0]);
-          setTargetNode(newSelection[1]);
-          setEdgeDialogOpen(true);
-        }
-        return newSelection;
-      });
-    }
-  };
-
   const handleEdgeSave = async () => {
     if (sourceNode && targetNode && edgeLabel.trim()) {
       try {
@@ -382,7 +373,7 @@ const Graph = () => {
           return;
         }
 
-        // Get the current user from localStorage
+        
         const user = JSON.parse(localStorage.getItem('user'));
         if (!user || !user.id) {
           alert('User information is missing. Please log in again.');
@@ -405,14 +396,14 @@ const Graph = () => {
           'Content-Type': 'application/json'
         };
 
-        // First verify that both nodes exist
+        
         try {
           console.log('Verifying nodes:', {
             sourceNodeId: sourceNode.id,
             targetNodeId: targetNode.id
           });
 
-          // Get all nodes for the current topic
+          
           const allNodesResponse = await axios.get(`${API_URL}/api/nodes/?topic_id=${topicId}`, { headers });
           console.log('All nodes in topic:', allNodesResponse.data);
           console.log('Source node ID:', sourceNode.id, 'Type:', typeof sourceNode.id);
@@ -450,39 +441,26 @@ const Graph = () => {
 
         let response;
         if (selectedEdge) {
-          // Update existing edge
+          
           response = await axios.put(`${API_URL}/api/connections/${selectedEdge.id}/`, edgeData, { headers });
         } else {
-          // Create new edge
+          
           response = await axios.post(`${API_URL}/api/connections/create/`, edgeData, { headers });
         }
 
         console.log('Server response:', response);
 
         if (response.status === 201 || response.status === 200) {
-          // Refresh edges from the server
-          const connectionsResponse = await axios.get(`${API_URL}/api/connections/?topic_id=${topicId}`, { headers });
-          const edgesData = connectionsResponse.data.map(connection => ({
-            id: connection.id,
-            source: connection.firstNodeID,
-            target: connection.secondNodeID,
-            label: connection.relationName,
-            type: 'smoothstep',
-            animated: true,
-            style: { stroke: '#555' },
-            labelStyle: { fill: '#000', fontWeight: 700 },
-            labelBgStyle: { fill: '#fff' },
-            labelBgPadding: [4, 4],
-            labelBgBorderRadius: 2,
-          }));
-          setEdges(edgesData);
-
+          
           setEdgeDialogOpen(false);
           setSourceNode(null);
           setTargetNode(null);
           setEdgeLabel('');
           setSearchQuery('');
           setFilteredNodes([]);
+          setSelectedEdge(null);
+         
+          setNeedsRefresh(true);
         }
       } catch (error) {
         console.error('Error saving edge:', error);
@@ -512,23 +490,9 @@ const Graph = () => {
         
         await axios.delete(`${API_URL}/api/connections/${selectedEdge.id}/`, { headers });
         
-        // Refresh edges from the server
-        const response = await axios.get(`${API_URL}/api/connections/?topic_id=${topicId}`, { headers });
-        const edgesData = response.data.map(connection => ({
-          id: connection.id,
-          source: connection.firstNodeID,
-          target: connection.secondNodeID,
-          label: connection.relationName,
-          type: 'smoothstep',
-          animated: true,
-          style: { stroke: '#555' },
-          labelStyle: { fill: '#000', fontWeight: 700 },
-          labelBgStyle: { fill: '#fff' },
-          labelBgPadding: [4, 4],
-          labelBgBorderRadius: 2,
-        }));
-        setEdges(edgesData);
+        
         setSelectedEdge(null);
+        setNeedsRefresh(true);
       } catch (error) {
         console.error('Error deleting edge:', error);
         alert('Failed to delete edge. Please try again.');
@@ -570,7 +534,7 @@ const Graph = () => {
       setWikidataResults([]);
       setSelectedWikidataItem(null);
       setManualAttributes({ description: '' });
-      // Refresh nodes from the server
+      
       const response = await axios.get(`${API_URL}/api/nodes/`);
       setNodes(response.data.map(node => ({
         id: node.id,
@@ -611,9 +575,122 @@ const Graph = () => {
     setFilteredNodes([]);
   };
 
+  
+  useEffect(() => {
+    if (needsRefresh) {
+      const fetchRefreshData = async () => {
+        try {
+          console.log('Refreshing graph data after operation');
+          const nodesResponse = await axios.get(`${API_URL}/api/nodes/?topic_id=${topicId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          
+          const nodePositions = {};
+          nodes.forEach(node => {
+            nodePositions[node.id] = node.position;
+          });
+          
+          const nodesData = nodesResponse.data.map(node => {
+            const nodeId = node.id.toString();
+            return {
+              id: nodeId,
+              type: 'custom',
+              position: nodePositions[nodeId] || { x: Math.random() * 500, y: Math.random() * 500 },
+              data: {
+                label: node.manual_name || 'Untitled',
+                attributes: {
+                  description: node.description || '',
+                  qid: node.qid || null
+                }
+              }
+            };
+          });
+          
+          console.log('Refresh complete, setting nodes:', nodesData);
+          setNodes(nodesData);
+          
+         
+          const connectionsResponse = await axios.get(`${API_URL}/api/connections/?topic_id=${topicId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          const edgesData = connectionsResponse.data.map(connection => ({
+            id: connection.id.toString(),
+            source: connection.firstNodeID.toString(),
+            target: connection.secondNodeID.toString(),
+            label: connection.relationName,
+            type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#555' },
+            labelStyle: { fill: '#000', fontWeight: 700 },
+            labelBgStyle: { fill: '#fff' },
+            labelBgPadding: [4, 4],
+            labelBgBorderRadius: 2,
+          }));
+          
+          console.log('Setting refreshed edges:', edgesData);
+          setEdges(edgesData);
+          
+          setNeedsRefresh(false);
+        } catch (error) {
+          console.error('Error refreshing data:', error);
+        }
+      };
+      
+      fetchRefreshData();
+    }
+  }, [needsRefresh, topicId]);
+
+  const saveNodePositions = async (nodes) => {
+    try {
+      const positionUpdates = nodes.map(node => ({
+        id: node.id,
+        position_x: node.position.x,
+        position_y: node.position.y
+      }));
+
+      await axios.post(
+        `${API_URL}/api/nodes/update_positions/`,
+        { positions: positionUpdates },
+        { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
+      );
+    } catch (err) {
+      console.error('Error saving node positions:', err);
+    }
+  };
+
+  const handleNodesChange = useCallback((changes) => {
+    onNodesChange(changes);
+    
+    
+    const positionChanges = changes.filter(change => change.type === 'position');
+    if (positionChanges.length > 0) {
+      
+      const updatedNodes = nodes.map(node => {
+        const change = positionChanges.find(c => c.id === node.id);
+        if (change) {
+          return {
+            ...node,
+            position: change.position
+          };
+        }
+        return node;
+      });
+
+      
+      saveNodePositions(updatedNodes);
+    }
+  }, [nodes, onNodesChange]);
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <Box sx={{ position: 'absolute', top: 10, left: 10, zIndex: 1000 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>Knowledge Graph - {topicName}</Typography>
         <Button variant="contained" onClick={handleNodeAdd} sx={{ mr: 1 }}>
           Add Node
         </Button>
@@ -624,6 +701,20 @@ const Graph = () => {
           color={isSelectingNodes ? 'secondary' : 'primary'}
         >
           {isSelectingNodes ? 'Select Two Nodes' : 'Add Edge'}
+        </Button>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate(`/topic/${topicId}`)} 
+          sx={{ mr: 1 }}
+        >
+          Back to Forum
+        </Button>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/dashboard')} 
+          sx={{ mr: 1 }}
+        >
+          Back to Dashboard
         </Button>
         {selectedNode && (
           <>
@@ -650,12 +741,13 @@ const Graph = () => {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeClick={isSelectingNodes ? handleNodeSelectForEdge : handleNodeClick}
+        onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
         nodeTypes={nodeTypes}
+        edgeTypes={{ smoothstep: SmoothStepEdge }}
         fitView
         fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 2 }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}

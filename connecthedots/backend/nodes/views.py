@@ -6,6 +6,8 @@ from .serializers import NodeSerializer
 from wikis.models import Wiki
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
+from rest_framework import viewsets
+from rest_framework.decorators import action
 
 @api_view(['GET'])
 def list_nodes(request):
@@ -46,6 +48,7 @@ def create_node(request):
 
     
 @api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def update_or_delete_node(request, pk):
     try:
         node = Node.objects.get(pk=pk)
@@ -53,7 +56,17 @@ def update_or_delete_node(request, pk):
         return Response({"error": "Node not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PUT':
-        serializer = NodeSerializer(node, data=request.data)
+        data = request.data.copy()
+        
+
+        qid = data.get('qid')
+        if qid:
+            wiki, _ = Wiki.objects.get_or_create(qID=qid, defaults={"label": "", "description": ""})
+            data['qid'] = wiki.qID
+        else:
+            data.pop('qid', None)
+            
+        serializer = NodeSerializer(node, data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -62,3 +75,71 @@ def update_or_delete_node(request, pk):
     elif request.method == 'DELETE':
         node.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class NodeViewSet(viewsets.ModelViewSet):
+    queryset = Node.objects.all()
+    serializer_class = NodeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Node.objects.all()
+        topic_id = self.request.query_params.get('topic_id', None)
+        if topic_id is not None:
+            queryset = queryset.filter(topic_id=topic_id)
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        
+       
+        qid = data.get('qid')
+        if qid:
+            wiki, _ = Wiki.objects.get_or_create(qID=qid, defaults={"label": "", "description": ""})
+            data['qid'] = wiki.qID
+        else:
+            data.pop('qid', None)
+
+        
+        topic = data.get('topic')
+        if not topic:
+            return Response({'error': 'topic is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            node = serializer.save(created_by_user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = request.data.copy()
+
+        
+        qid = data.get('qid')
+        if qid:
+            wiki, _ = Wiki.objects.get_or_create(qID=qid, defaults={"label": "", "description": ""})
+            data['qid'] = wiki.qID
+        else:
+            data.pop('qid', None)
+
+        serializer = self.get_serializer(instance, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def update_positions(self, request):
+        try:
+            positions = request.data.get('positions', [])
+            for pos in positions:
+                node = Node.objects.get(id=pos['id'])
+                node.position_x = pos['position_x']
+                node.position_y = pos['position_y']
+                node.save()
+            return Response({'status': 'positions updated'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )

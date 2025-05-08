@@ -3,6 +3,7 @@ from django.conf import settings
 
 class Topic(models.Model):
     topicName = models.CharField(max_length=200)
+    description = models.TextField(max_length=1000, default='')
     createdBy = models.ForeignKey(
         'users.User',
         on_delete=models.CASCADE,

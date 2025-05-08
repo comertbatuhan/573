@@ -22,6 +22,8 @@ class Node(models.Model):
         related_name='created_nodes'
     )
     description = models.TextField(blank=True, null=True)
+    position_x = models.FloatField(default=0)
+    position_y = models.FloatField(default=0)
 
     class Meta:
         db_table = 'nodes'

@@ -10,6 +10,8 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [showCreateTopic, setShowCreateTopic] = useState(false);
   const [newTopicName, setNewTopicName] = useState('');
+  const [newTopicDescription, setNewTopicDescription] = useState('');
+  const [topicError, setTopicError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const navigate = useNavigate();
@@ -72,6 +74,17 @@ const Dashboard = () => {
   const handleCreateTopic = async () => {
     if (!newTopicName.trim()) return;
 
+    // Validate topic name format
+    if (newTopicName.includes(' ')) {
+      setTopicError('Topic name cannot contain spaces. Use underscores instead (e.g., Ece_Gurel)');
+      return;
+    }
+
+    if (!newTopicDescription.trim()) {
+      setTopicError('Please provide a description for the topic');
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/topics/`, {
         method: 'POST',
@@ -79,7 +92,10 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ topicName: newTopicName }),
+        body: JSON.stringify({ 
+          topicName: newTopicName,
+          description: newTopicDescription 
+        }),
       });
 
       if (!response.ok) {
@@ -90,10 +106,12 @@ const Dashboard = () => {
       const newTopic = await response.json();
       setTopics([...topics, { id: newTopic.id, name: newTopic.topicName, interactions: 0 }]);
       setNewTopicName('');
+      setNewTopicDescription('');
       setShowCreateTopic(false);
+      setTopicError('');
     } catch (error) {
       console.error('Error creating topic:', error);
-      alert(error.message);
+      setTopicError(error.message);
     }
   };
 
@@ -148,19 +166,42 @@ const Dashboard = () => {
 
           {showCreateTopic && (
             <div className="create-topic-form">
-              <input
-                type="text"
-                value={newTopicName}
-                onChange={(e) => setNewTopicName(e.target.value)}
-                placeholder="Enter topic name"
-                className="topic-input"
-              />
-              <button onClick={handleCreateTopic} className="submit-button">
-                Create
-              </button>
-              <button onClick={() => setShowCreateTopic(false)} className="cancel-button">
-                Cancel
-              </button>
+              <div className="form-group">
+                <input
+                  type="text"
+                  value={newTopicName}
+                  onChange={(e) => {
+                    setNewTopicName(e.target.value);
+                    setTopicError('');
+                  }}
+                  placeholder="Enter topic name (use underscores instead of spaces)"
+                  className="topic-input"
+                />
+              </div>
+              <div className="form-group">
+                <textarea
+                  value={newTopicDescription}
+                  onChange={(e) => {
+                    setNewTopicDescription(e.target.value);
+                    setTopicError('');
+                  }}
+                  placeholder="Enter topic description"
+                  className="topic-description"
+                  rows="4"
+                />
+              </div>
+              {topicError && <div className="error-message">{topicError}</div>}
+              <div className="form-actions">
+                <button onClick={handleCreateTopic} className="submit-button">
+                  Create
+                </button>
+                <button onClick={() => {
+                  setShowCreateTopic(false);
+                  setTopicError('');
+                }} className="cancel-button">
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
 

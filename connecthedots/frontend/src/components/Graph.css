@@ -189,7 +189,12 @@
 }
 
 .react-flow__edges {
-  z-index: 0;
+  z-index: 1;
+}
+
+.react-flow__edge-path {
+  stroke: #555 !important;
+  stroke-width: 2px !important;
 }
 
 .custom-node {
@@ -220,11 +225,6 @@
   padding: 4px;
   background: #f8f8f8;
   border-radius: 3px;
-}
-
-.node-content {
-  font-size: 12px;
-  padding: 4px;
 }
 
 .node-attribute {

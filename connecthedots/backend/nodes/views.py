@@ -8,6 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from usertopics.utils import record_user_topic_action
+from topics.models import Topic
 
 @api_view(['GET'])
 def list_nodes(request):
@@ -42,6 +44,9 @@ def create_node(request):
     serializer = NodeSerializer(data=data)
     if serializer.is_valid():
         node = serializer.save(created_by_user=request.user)
+        # Record the interaction
+        topic = Topic.objects.get(id=topic_id)
+        record_user_topic_action(request.user, topic, 'addedNode')
         return Response(NodeSerializer(node).data, status=201)
     return Response(serializer.errors, status=400)
 
@@ -58,7 +63,6 @@ def update_or_delete_node(request, pk):
     if request.method == 'PUT':
         data = request.data.copy()
         
-
         qid = data.get('qid')
         if qid:
             wiki, _ = Wiki.objects.get_or_create(qID=qid, defaults={"label": "", "description": ""})
@@ -69,10 +73,14 @@ def update_or_delete_node(request, pk):
         serializer = NodeSerializer(node, data=data)
         if serializer.is_valid():
             serializer.save()
+            # Record the interaction for editing
+            record_user_topic_action(request.user, node.topic, 'addedNode')
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
+        # Record the interaction before deleting
+        record_user_topic_action(request.user, node.topic, 'addedNode')
         node.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -91,7 +99,6 @@ class NodeViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         
-       
         qid = data.get('qid')
         if qid:
             wiki, _ = Wiki.objects.get_or_create(qID=qid, defaults={"label": "", "description": ""})
@@ -99,7 +106,6 @@ class NodeViewSet(viewsets.ModelViewSet):
         else:
             data.pop('qid', None)
 
-        
         topic = data.get('topic')
         if not topic:
             return Response({'error': 'topic is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -107,6 +113,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
             node = serializer.save(created_by_user=request.user)
+            # Record the interaction
+            topic_obj = Topic.objects.get(id=topic)
+            record_user_topic_action(request.user, topic_obj, 'addedNode')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -114,7 +123,6 @@ class NodeViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = request.data.copy()
 
-        
         qid = data.get('qid')
         if qid:
             wiki, _ = Wiki.objects.get_or_create(qID=qid, defaults={"label": "", "description": ""})
@@ -125,8 +133,17 @@ class NodeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            # Record the interaction for editing
+            record_user_topic_action(request.user, instance.topic, 'addedNode')
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Record the interaction before deleting
+        record_user_topic_action(request.user, instance.topic, 'addedNode')
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['post'])
     def update_positions(self, request):

@@ -153,7 +153,7 @@ const Profile = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/users/delete-profile/`, {
+      const response = await fetch(`${API_URL}/api/users/delete_profile/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

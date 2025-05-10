@@ -21,7 +21,7 @@ class TopicViewSet(viewsets.ModelViewSet):
         search_query = self.request.query_params.get('search', None)
         if search_query:
             queryset = queryset.filter(topicName__icontains=search_query)
-        return queryset.order_by('-creationDate')
+        return queryset.order_by('-interactionCount', '-creationDate')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

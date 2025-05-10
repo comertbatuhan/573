@@ -217,9 +217,13 @@ const Dashboard = () => {
                 <div key={topic.id} className="topic-card">
                   <h3>{topic.topicName || topic.name}</h3>
                   <p>Interactions: {topic.interactionCount || 0}</p>
-                  <Link to={`/topic/${topic.id}`} className="view-topic-button">
+                  <div 
+                    className="view-topic-button"
+                    onClick={() => handleTopicClick(topic.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     View Topic
-                  </Link>
+                  </div>
                 </div>
               ))
             )}

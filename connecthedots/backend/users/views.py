@@ -113,19 +113,20 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['delete'])
     def delete_profile(self, request):
+        # dont delete user, instead I anonymize it
         user = request.user
-        # I dont delete user, instead anonymize it.
         with transaction.atomic():
-            # Update 
-            user.username = f"deleted_user_{user.id}"
-            user.email = f"deleted_{user.id}@example.com"
-            user.first_name = "Deleted"
-            user.last_name = "User"
-            user.set_password(User.objects.make_random_password())
-            user.is_active = False
+            user.username     = f"deleted_user_{user.id}"
+            user.email        = f"deleted_{user.id}@example.com"
+            user.first_name   = "Deleted"
+            user.last_name    = "User"
+            user.set_unusable_password()
+            user.is_active    = False
             user.save()
-
-        return Response({'message': 'Profile deleted successfully'})
+        return Response(
+            {'message': 'Profile deleted (soft) successfully'},
+            status=status.HTTP_200_OK
+        )
 
     @action(detail=False, methods=['get'])
     def get_me(self, request):

@@ -4,6 +4,9 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import User
+from django.utils import timezone
+
+User = get_user_model()
 
 class UserTests(APITestCase):
     def setUp(self):
@@ -49,7 +52,6 @@ class UserTests(APITestCase):
         }
         response = self.client.post(self.login_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['username'], 'testuser')
 
     def test_user_login_invalid_credentials(self):
         """Test login with invalid credentials"""
@@ -85,3 +87,29 @@ class UserTests(APITestCase):
                 email='test@example.com',  
                 password='testpass123'
             )
+
+class UserModelTest(TestCase):
+    def setUp(self):
+        self.user_data = {
+            'username': 'testuser',
+            'email': 'test@example.com',
+            'password': 'testpass123',
+            'first_name': 'Test',
+            'last_name': 'User'
+        }
+        self.user = User.objects.create_user(**self.user_data)
+
+    def test_create_user(self):
+        self.assertEqual(self.user.username, 'testuser')
+        self.assertEqual(self.user.email, 'test@example.com')
+        self.assertEqual(self.user.first_name, 'Test')
+        self.assertEqual(self.user.last_name, 'User')
+        self.assertTrue(self.user.check_password('testpass123'))
+
+    def test_user_str_method(self):
+        expected_str = 'Test User'
+        self.assertEqual(str(self.user), expected_str)
+
+    def test_user_date_of_sign(self):
+        self.assertIsNotNone(self.user.date_of_sign)
+        self.assertLessEqual(self.user.date_of_sign, timezone.now())

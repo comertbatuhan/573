@@ -12,4 +12,6 @@ urlpatterns = [
     path('password-reset/', password_reset_request, name='password_reset_request'),
     path('me/', UserViewSet.as_view({'get': 'get_me'}), name='get_me'),
     path('delete_profile/', UserViewSet.as_view({'delete': 'delete_profile'}), name='delete_profile'),
+    path('update-profile/', UserViewSet.as_view({'put': 'update_profile'}), name='update_profile'),
+    path('change-password/', UserViewSet.as_view({'post': 'change_password'}), name='change_password'),
 ] 

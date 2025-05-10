@@ -97,8 +97,9 @@ const Profile = () => {
         throw new Error(data.error || 'Failed to update profile');
       }
 
-      localStorage.setItem('user', JSON.stringify(data));
-      setUser(data);
+      const updatedUser = { ...user, ...data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
       setShowUpdateForm(false);
       setProfileImage(null);
       setImagePreview(null);
@@ -111,8 +112,18 @@ const Profile = () => {
     e.preventDefault();
     setError('');
 
+    if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
+      setError('All password fields are required');
+      return;
+    }
+
     if (formData.newPassword !== formData.confirmPassword) {
       setError('New passwords do not match');
+      return;
+    }
+
+    if (formData.newPassword.length < 8) {
+      setError('New password must be at least 8 characters long');
       return;
     }
 
@@ -132,7 +143,14 @@ const Profile = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to change password');
+        if (response.status === 400) {
+          if (data.error === 'Current password is incorrect') {
+            throw new Error('Current password is incorrect');
+          } else if (data.error === 'Both current password and new password are required') {
+            throw new Error('Please fill in all password fields');
+          }
+        }
+        throw new Error(data.error || 'Failed to change password. Please try again.');
       }
 
       setShowPasswordForm(false);
@@ -142,6 +160,8 @@ const Profile = () => {
         newPassword: '',
         confirmPassword: '',
       });
+      setError(''); 
+      alert('Password changed successfully!');
     } catch (err) {
       setError(err.message);
     }
@@ -165,7 +185,6 @@ const Profile = () => {
         throw new Error(data.error || 'Failed to delete profile');
       }
 
-      // clear local storage and direc  to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       navigate('/login');

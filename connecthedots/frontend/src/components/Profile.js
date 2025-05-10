@@ -165,7 +165,7 @@ const Profile = () => {
         throw new Error(data.error || 'Failed to delete profile');
       }
 
-      // Clear local storage and redirect to login
+      // clear local storage and direc  to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       navigate('/login');

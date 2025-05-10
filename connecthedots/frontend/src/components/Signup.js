@@ -27,7 +27,7 @@ const Signup = () => {
     setError('');
     setLoading(true);
     
-    // Basic validation
+    //  validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -59,7 +59,7 @@ const Signup = () => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Registration successful
+      // register success
       navigate('/login');
     } catch (err) {
       setError(err.message || 'Failed to create account. Please try again.');

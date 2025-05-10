@@ -20,7 +20,7 @@ def create_connection(request):
     serializer = ConnectionSerializer(data=request.data)
     if serializer.is_valid():
         connection = serializer.save(createdBy=request.user)
-        # Record the interaction
+        # record interaction
         topic = Topic.objects.get(id=connection.topic.id)
         record_user_topic_action(request.user, topic, 'addedNode')
         return Response(serializer.data, status=status.HTTP_201_CREATED)

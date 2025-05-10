@@ -43,10 +43,10 @@ const Login = () => {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store authentication token and user data
+      // store authentication token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/dashboard'); // Redirect to dashboard after successful login
+      navigate('/dashboard'); // direct to dashboard after  login
     } catch (err) {
       setError(err.message || 'Failed to login. Please try again.');
     } finally {

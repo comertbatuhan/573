@@ -74,7 +74,7 @@ const Dashboard = () => {
   const handleCreateTopic = async () => {
     if (!newTopicName.trim()) return;
 
-    // Validate topic name format
+    // validate format
     if (newTopicName.includes(' ')) {
       setTopicError('Topic name cannot contain spaces. Use underscores instead (e.g., Ece_Gurel)');
       return;

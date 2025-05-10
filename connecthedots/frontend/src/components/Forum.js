@@ -177,7 +177,7 @@ const Forum = () => {
       setNewPost(value);
     }
 
-    // Check for @ symbol and show suggestions
+    // check for @  and  suggest
     const textBeforeCursor = value.substring(0, cursorPosition);
     const match = textBeforeCursor.match(/@([^@\s]*)$/);
     
@@ -194,7 +194,7 @@ const Forum = () => {
         
         setSuggestionPosition({
           top: rect.top + (lines * lineHeight),
-          left: rect.left + (match[0].length * 8) // Approximate character width
+          left: rect.left + (match[0].length * 8) // approximate characte width
         });
         setTopicSuggestions(filteredTopics);
       } else {

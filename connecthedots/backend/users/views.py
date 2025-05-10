@@ -113,7 +113,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['delete'])
     def delete_profile(self, request):
-        # dont delete user, instead I anonymize it
+        # dont delete user, instead anonymize it
         user = request.user
         with transaction.atomic():
             user.username     = f"deleted_user_{user.id}"

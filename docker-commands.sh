@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Not mandatory to use
+
 # Function to display usage
 show_usage() {
     echo "Usage: $0 [command]"

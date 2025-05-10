@@ -34,9 +34,9 @@ class UserTests(APITestCase):
     def test_user_registration_invalid_data(self):
         """Test user registration with invalid data"""
         data = {
-            'username': '',  # Empty 
+            'username': '',  # empty 
             'email': 'invalid-email',
-            'password': '123'  # Too short 
+            'password': '123'  # too short 
         }
         response = self.client.post(self.register_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -82,6 +82,6 @@ class UserTests(APITestCase):
         with self.assertRaises(Exception):
             User.objects.create_user(
                 username='testuser2',
-                email='test@example.com',  # Same email as existing user
+                email='test@example.com',  
                 password='testpass123'
             )

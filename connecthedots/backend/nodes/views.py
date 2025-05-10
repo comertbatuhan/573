@@ -44,7 +44,7 @@ def create_node(request):
     serializer = NodeSerializer(data=data)
     if serializer.is_valid():
         node = serializer.save(created_by_user=request.user)
-        # Record the interaction
+        # record interaction
         topic = Topic.objects.get(id=topic_id)
         record_user_topic_action(request.user, topic, 'addedNode')
         return Response(NodeSerializer(node).data, status=201)
@@ -73,13 +73,13 @@ def update_or_delete_node(request, pk):
         serializer = NodeSerializer(node, data=data)
         if serializer.is_valid():
             serializer.save()
-            # Record the interaction for editing
+            # record interaction 
             record_user_topic_action(request.user, node.topic, 'addedNode')
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        # Record the interaction before deleting
+        # record interaction
         record_user_topic_action(request.user, node.topic, 'addedNode')
         node.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -113,7 +113,7 @@ class NodeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
             node = serializer.save(created_by_user=request.user)
-            # Record the interaction
+            # record  interaction
             topic_obj = Topic.objects.get(id=topic)
             record_user_topic_action(request.user, topic_obj, 'addedNode')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -133,14 +133,14 @@ class NodeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            # Record the interaction for editing
+            # record  interaction 
             record_user_topic_action(request.user, instance.topic, 'addedNode')
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        # Record the interaction before deleting
+        # record  interaction 
         record_user_topic_action(request.user, instance.topic, 'addedNode')
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)

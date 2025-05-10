@@ -76,3 +76,4 @@ dmypy.json
 .pyre/ 
 *.pem
 notes.txt
+full_clean.sh

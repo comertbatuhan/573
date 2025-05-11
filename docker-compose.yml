@@ -4,47 +4,33 @@ services:
   frontend:
     build: ./connecthedots/frontend
     ports:
-      - "3000:3000"
+      - "3000:80"        # Host port 3000 -> container port 80 (allowed by EC2 inbound)
     env_file:
       - .env
     depends_on:
       - backend
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+    mem_limit: 512M
+    restart: unless-stopped
 
   backend:
     build: ./connecthedots/backend
     ports:
-      - "8000:8000"
+      - "8000:8000"     # Host port 8000 -> container port 8000 (allowed by EC2 inbound)
     env_file:
       - .env
     depends_on:
       - db
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+    mem_limit: 512M
+    restart: unless-stopped
 
   db:
     image: postgres:15-alpine
     env_file:
       - .env
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
+    mem_limit: 256M
+    restart: unless-stopped
 
 volumes:
-  postgres_data: 
+  postgres_data:

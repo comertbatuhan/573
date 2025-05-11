@@ -5,9 +5,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 
-DEBUG = False
+DEBUG = True  # Temporarily enable debug mode
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+ALLOWED_HOSTS = ['*']  # Temporarily allow all hosts for debugging
 
 # Application definition
 
@@ -119,6 +119,28 @@ AUTH_USER_MODEL = 'users.User'
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS').split(',')
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Additional CORS settings
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # REST Framework settings
 REST_FRAMEWORK = {

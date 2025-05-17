@@ -84,9 +84,6 @@ const NodeDetailsPanel = ({ node, onClose, edges, nodes }) => {
     <Paper className="node-details-panel">
       <Box className="node-details-header">
         <Typography variant="h6">{node.data.label}</Typography>
-        <IconButton onClick={onClose} size="small">
-          <DeleteIcon />
-        </IconButton>
       </Box>
       <Box className="node-details-content">
         {node.data.attributes?.description && (
@@ -201,6 +198,8 @@ const Graph = () => {
   const [isSelectingNodes, setIsSelectingNodes] = useState(false);
   const [selectedNodesForEdge, setSelectedNodesForEdge] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceSearchQuery, setSourceSearchQuery] = useState('');
+  const [targetSearchQuery, setTargetSearchQuery] = useState('');
   const [filteredNodes, setFilteredNodes] = useState([]);
   const [showNodeSearch, setShowNodeSearch] = useState(false);
   const [needsRefresh, setNeedsRefresh] = useState(false);
@@ -735,8 +734,7 @@ const Graph = () => {
     }
   };
 
-  const handleNodeSearch = (query) => {
-    setSearchQuery(query);
+  const handleNodeSearch = (query, type) => {
     if (query.trim()) {
       const filtered = nodes.filter(node => 
         node.data.label.toLowerCase().includes(query.toLowerCase())
@@ -825,6 +823,15 @@ const Graph = () => {
             sx={{ mr: 1 }}
           >
             Add Node
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleEdgeAdd}
+            className="add-edge-button"
+            sx={{ mr: 1 }}
+          >
+            Add Edge
           </Button>
           <Button
             variant="contained"
@@ -970,8 +977,11 @@ const Graph = () => {
             </Typography>
             <TextField
               fullWidth
-              value={sourceNode ? sourceNode.data.label : searchQuery}
-              onChange={(e) => handleNodeSearch(e.target.value)}
+              value={sourceNode ? sourceNode.data.label : sourceSearchQuery}
+              onChange={(e) => {
+                setSourceSearchQuery(e.target.value);
+                handleNodeSearch(e.target.value, 'source');
+              }}
               placeholder="Search for source node..."
               sx={{ mb: 1 }}
             />
@@ -980,7 +990,11 @@ const Graph = () => {
                 {filteredNodes.map((node) => (
                   <Box
                     key={node.id}
-                    onClick={() => handleNodeSelectFromSearch(node)}
+                    onClick={() => {
+                      setSourceNode(node);
+                      setSourceSearchQuery('');
+                      setFilteredNodes([]);
+                    }}
                     sx={{
                       p: 1,
                       cursor: 'pointer',
@@ -1000,8 +1014,11 @@ const Graph = () => {
             </Typography>
             <TextField
               fullWidth
-              value={targetNode ? targetNode.data.label : searchQuery}
-              onChange={(e) => handleNodeSearch(e.target.value)}
+              value={targetNode ? targetNode.data.label : targetSearchQuery}
+              onChange={(e) => {
+                setTargetSearchQuery(e.target.value);
+                handleNodeSearch(e.target.value, 'target');
+              }}
               placeholder="Search for target node..."
               sx={{ mb: 1 }}
             />
@@ -1010,7 +1027,11 @@ const Graph = () => {
                 {filteredNodes.map((node) => (
                   <Box
                     key={node.id}
-                    onClick={() => handleNodeSelectFromSearch(node)}
+                    onClick={() => {
+                      setTargetNode(node);
+                      setTargetSearchQuery('');
+                      setFilteredNodes([]);
+                    }}
                     sx={{
                       p: 1,
                       cursor: 'pointer',

@@ -10,6 +10,26 @@
   top: 20px;
   left: 20px;
   z-index: 1000;
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  min-width: 300px;
+}
+
+.controls-header {
+  margin-bottom: 16px;
+}
+
+.navigation-buttons {
+  margin-top: 8px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .add-node-button {
@@ -239,4 +259,101 @@
   color: #666;
   display: block;
   margin-bottom: 2px;
+}
+
+.node-details-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.node-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.node-details-content {
+  padding: 16px;
+}
+
+.node-detail-section {
+  margin-bottom: 16px;
+}
+
+.node-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.wikidata-link {
+  color: #1976d2;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.wikidata-link:hover {
+  text-decoration: underline;
+}
+
+.relation-item {
+  padding: 8px;
+  background: #f8f8f8;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.relation-item:last-child {
+  margin-bottom: 0;
+}
+
+.search-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  max-height: calc(100vh - 40px);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.search-header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.search-content {
+  padding: 16px;
+}
+
+.search-results {
+  margin-top: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+  background-color: #f5f5f5;
+}
+
+.search-button {
+  margin-left: 8px !important;
 } 

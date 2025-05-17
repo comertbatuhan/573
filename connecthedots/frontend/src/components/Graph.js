@@ -21,9 +21,12 @@ import {
   IconButton,
   Box,
   Typography,
+  Paper,
+  InputAdornment,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import SearchIcon from '@mui/icons-material/Search';
 import axios from 'axios';
 import './Graph.css';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -56,6 +59,125 @@ const nodeTypes = { custom: CustomNode };
 const initialNodes = [];
 const initialEdges = [];
 
+const NodeDetailsPanel = ({ node, onClose, edges, nodes }) => {
+  if (!node) return null;
+
+  const getRelatedNodes = (nodeId) => {
+    const relatedEdges = edges.filter(edge => 
+      edge.source === nodeId || edge.target === nodeId
+    );
+    
+    return relatedEdges.map(edge => {
+      const relatedNodeId = edge.source === nodeId ? edge.target : edge.source;
+      const relatedNode = nodes.find(n => n.id === relatedNodeId);
+      return {
+        node: relatedNode,
+        relation: edge.label,
+        isSource: edge.source === nodeId
+      };
+    });
+  };
+
+  const relatedNodes = getRelatedNodes(node.id);
+
+  return (
+    <Paper className="node-details-panel">
+      <Box className="node-details-header">
+        <Typography variant="h6">{node.data.label}</Typography>
+        <IconButton onClick={onClose} size="small">
+          <DeleteIcon />
+        </IconButton>
+      </Box>
+      <Box className="node-details-content">
+        {node.data.attributes?.description && (
+          <Box className="node-detail-section">
+            <Typography variant="subtitle2">Description</Typography>
+            <Typography variant="body2">{node.data.attributes.description}</Typography>
+          </Box>
+        )}
+        {node.data.attributes?.qid && (
+          <Box className="node-detail-section">
+            <Typography variant="subtitle2">Wikidata</Typography>
+            <a 
+              href={`https://www.wikidata.org/wiki/${node.data.attributes.qid}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="wikidata-link"
+            >
+              View on Wikidata
+            </a>
+          </Box>
+        )}
+        {relatedNodes.length > 0 && (
+          <Box className="node-detail-section">
+            <Typography variant="subtitle2">Relations</Typography>
+            {relatedNodes.map(({ node: relatedNode, relation, isSource }, index) => (
+              <Box key={index} className="relation-item">
+                <Typography variant="body2">
+                  {isSource ? `${relation} → ${relatedNode.data.label}` : `${relatedNode.data.label} → ${relation}`}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+const SearchPanel = ({ nodes, onNodeSelect }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredNodes, setFilteredNodes] = useState([]);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredNodes([]);
+      return;
+    }
+
+    const filtered = nodes.filter(node =>
+      node.data.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredNodes(filtered);
+  }, [searchQuery, nodes]);
+
+  return (
+    <Paper className="search-panel">
+      <Box className="search-header">
+        <Typography variant="h6">Search Nodes</Typography>
+      </Box>
+      <Box className="search-content">
+        <TextField
+          fullWidth
+          variant="outlined"
+          size="small"
+          placeholder="Search nodes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Box className="search-results">
+          {filteredNodes.map((node) => (
+            <Box
+              key={node.id}
+              className="search-result-item"
+              onClick={() => onNodeSelect(node)}
+            >
+              <Typography variant="body2">{node.data.label}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    </Paper>
+  );
+};
+
 const Graph = () => {
   const { topicId } = useParams();
   const navigate = useNavigate();
@@ -84,6 +206,8 @@ const Graph = () => {
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [nodePositions, setNodePositions] = useState({});
   const [topicName, setTopicName] = useState('');
+  const [showNodeDetails, setShowNodeDetails] = useState(false);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
 
   useEffect(() => {
     if (!topicId) {
@@ -114,20 +238,17 @@ const Graph = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        
         const nodesResp = await axios.get(
           `${API_URL}/api/nodes/?topic_id=${topicId}`,
           { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
         );
 
         const nodesData = nodesResp.data.map((node) => {
-          
           const position = {
             x: node.position_x || 0,
             y: node.position_y || 0
           };
 
-          
           if (!node.position_x && !node.position_y) {
             const gridSize = Math.ceil(Math.sqrt(nodesResp.data.length));
             const nodeSpacing = 250;
@@ -150,7 +271,6 @@ const Graph = () => {
         });
         setNodes(nodesData);
 
-        
         const connsResp = await axios.get(
           `${API_URL}/api/connections/?topic_id=${topicId}`,
           { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
@@ -176,9 +296,73 @@ const Graph = () => {
     };
 
     fetchData();
-  }, [topicId]);
+  }, [topicId, setNodes, setEdges]);
 
-  
+  useEffect(() => {
+    if (needsRefresh) {
+      const fetchRefreshData = async () => {
+        try {
+          console.log('Refreshing graph data after operation');
+          const nodesResponse = await axios.get(`${API_URL}/api/nodes/?topic_id=${topicId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          const nodePositions = {};
+          nodes.forEach(node => {
+            nodePositions[node.id] = node.position;
+          });
+          
+          const nodesData = nodesResponse.data.map(node => {
+            const nodeId = node.id.toString();
+            return {
+              id: nodeId,
+              type: 'custom',
+              position: nodePositions[nodeId] || { x: Math.random() * 500, y: Math.random() * 500 },
+              data: {
+                label: node.manual_name || 'Untitled',
+                attributes: {
+                  description: node.description || '',
+                  qid: node.qid || null
+                }
+              }
+            };
+          });
+          
+          setNodes(nodesData);
+          
+          const connectionsResponse = await axios.get(`${API_URL}/api/connections/?topic_id=${topicId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          const edgesData = connectionsResponse.data.map(connection => ({
+            id: connection.id.toString(),
+            source: connection.firstNodeID.toString(),
+            target: connection.secondNodeID.toString(),
+            label: connection.relationName,
+            type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#555' },
+            labelStyle: { fill: '#000', fontWeight: 700 },
+            labelBgStyle: { fill: '#fff' },
+            labelBgPadding: [4, 4],
+            labelBgBorderRadius: 2,
+          }));
+          
+          setEdges(edgesData);
+          setNeedsRefresh(false);
+        } catch (error) {
+          console.error('Error refreshing data:', error);
+        }
+      };
+      
+      fetchRefreshData();
+    }
+  }, [needsRefresh, topicId, nodes, setNodes, setEdges]);
+
   useEffect(() => {
     if (nodes.length > 0) {
       
@@ -212,6 +396,7 @@ const Graph = () => {
       setSelectedNode(node);
       setNodeName(node.data.label);
       setNodeAttributes(node.data.attributes || {});
+      setShowNodeDetails(true);
     }
   };
 
@@ -279,10 +464,8 @@ const Graph = () => {
         nodeData.qid = selectedWikidataItem.id;
       }
 
-      let response;
       if (selectedNode) {
-        
-        response = await axios.put(
+        await axios.put(
           `${API_URL}/api/nodes/${selectedNode.id}/`,
           nodeData,
           {
@@ -293,8 +476,7 @@ const Graph = () => {
           }
         );
       } else {
-        
-        response = await axios.post(
+        await axios.post(
           `${API_URL}/api/nodes/`,
           nodeData,
           {
@@ -565,86 +747,11 @@ const Graph = () => {
     }
   };
 
-  const handleNodeSelectFromSearch = (node, isSource) => {
-    if (isSource) {
-      setSourceNode(node);
-    } else {
-      setTargetNode(node);
-    }
-    setSearchQuery('');
-    setFilteredNodes([]);
+  const handleNodeSelectFromSearch = (node) => {
+    setSelectedNode(node);
+    setShowNodeDetails(true);
+    setShowSearchPanel(false);
   };
-
-  
-  useEffect(() => {
-    if (needsRefresh) {
-      const fetchRefreshData = async () => {
-        try {
-          console.log('Refreshing graph data after operation');
-          const nodesResponse = await axios.get(`${API_URL}/api/nodes/?topic_id=${topicId}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          
-          
-          const nodePositions = {};
-          nodes.forEach(node => {
-            nodePositions[node.id] = node.position;
-          });
-          
-          const nodesData = nodesResponse.data.map(node => {
-            const nodeId = node.id.toString();
-            return {
-              id: nodeId,
-              type: 'custom',
-              position: nodePositions[nodeId] || { x: Math.random() * 500, y: Math.random() * 500 },
-              data: {
-                label: node.manual_name || 'Untitled',
-                attributes: {
-                  description: node.description || '',
-                  qid: node.qid || null
-                }
-              }
-            };
-          });
-          
-          console.log('Refresh complete, setting nodes:', nodesData);
-          setNodes(nodesData);
-          
-         
-          const connectionsResponse = await axios.get(`${API_URL}/api/connections/?topic_id=${topicId}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          
-          const edgesData = connectionsResponse.data.map(connection => ({
-            id: connection.id.toString(),
-            source: connection.firstNodeID.toString(),
-            target: connection.secondNodeID.toString(),
-            label: connection.relationName,
-            type: 'smoothstep',
-            animated: true,
-            style: { stroke: '#555' },
-            labelStyle: { fill: '#000', fontWeight: 700 },
-            labelBgStyle: { fill: '#fff' },
-            labelBgPadding: [4, 4],
-            labelBgBorderRadius: 2,
-          }));
-          
-          console.log('Setting refreshed edges:', edgesData);
-          setEdges(edgesData);
-          
-          setNeedsRefresh(false);
-        } catch (error) {
-          console.error('Error refreshing data:', error);
-        }
-      };
-      
-      fetchRefreshData();
-    }
-  }, [needsRefresh, topicId]);
 
   const saveNodePositions = async (nodes) => {
     try {
@@ -688,55 +795,68 @@ const Graph = () => {
   }, [nodes, onNodesChange]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <Box sx={{ position: 'absolute', top: 10, left: 10, zIndex: 1000 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>Knowledge Graph - {topicName}</Typography>
-        <Button variant="contained" onClick={handleNodeAdd} sx={{ mr: 1 }}>
-          Add Node
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={handleEdgeAdd} 
-          sx={{ mr: 1 }}
-          color={isSelectingNodes ? 'secondary' : 'primary'}
-        >
-          {isSelectingNodes ? 'Select Two Nodes' : 'Add Edge'}
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={() => navigate(`/topic/${topicId}`)} 
-          sx={{ mr: 1 }}
-        >
-          Back to Forum
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={() => navigate('/dashboard')} 
-          sx={{ mr: 1 }}
-        >
-          Back to Dashboard
-        </Button>
-        {selectedNode && (
-          <>
-            <IconButton onClick={handleNodeDelete} color="error">
-              <DeleteIcon />
-            </IconButton>
-            <IconButton onClick={() => setNodeDialogOpen(true)} color="primary">
-              <EditIcon />
-            </IconButton>
-          </>
-        )}
-        {selectedEdge && (
-          <>
-            <IconButton onClick={handleEdgeDelete} color="error">
-              <DeleteIcon />
-            </IconButton>
-            <IconButton onClick={() => setEdgeDialogOpen(true)} color="primary">
-              <EditIcon />
-            </IconButton>
-          </>
-        )}
-      </Box>
+    <div className="graph-container">
+      <div className="graph-controls">
+        <Box className="controls-header">
+          <Typography variant="h6">Knowledge Graph - {topicName}</Typography>
+          <Box className="navigation-buttons">
+            <Button 
+              variant="contained" 
+              onClick={() => navigate(`/topic/${topicId}`)} 
+              sx={{ mr: 1 }}
+            >
+              Back to Forum
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={() => navigate('/dashboard')} 
+              sx={{ mr: 1 }}
+            >
+              Back to Dashboard
+            </Button>
+          </Box>
+        </Box>
+        <Box className="action-buttons">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleNodeAdd}
+            className="add-node-button"
+            sx={{ mr: 1 }}
+          >
+            Add Node
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => setShowSearchPanel(!showSearchPanel)}
+            className="search-button"
+            sx={{ mr: 1 }}
+          >
+            Search
+          </Button>
+          {selectedNode && (
+            <>
+              <IconButton onClick={handleNodeDelete} color="error" sx={{ mr: 1 }}>
+                <DeleteIcon />
+              </IconButton>
+              <IconButton onClick={() => setNodeDialogOpen(true)} color="primary" sx={{ mr: 1 }}>
+                <EditIcon />
+              </IconButton>
+            </>
+          )}
+          {selectedEdge && (
+            <>
+              <IconButton onClick={handleEdgeDelete} color="error" sx={{ mr: 1 }}>
+                <DeleteIcon />
+              </IconButton>
+              <IconButton onClick={() => setEdgeDialogOpen(true)} color="primary" sx={{ mr: 1 }}>
+                <EditIcon />
+              </IconButton>
+            </>
+          )}
+        </Box>
+      </div>
 
       <ReactFlow
         nodes={nodes}
@@ -749,23 +869,27 @@ const Graph = () => {
         nodeTypes={nodeTypes}
         edgeTypes={{ smoothstep: SmoothStepEdge }}
         fitView
-        fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 2 }}
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        style={{ background: '#f8f8f8' }}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          animated: true,
-          style: { stroke: '#555' },
-          labelStyle: { fill: '#000', fontWeight: 700 },
-          labelBgStyle: { fill: '#fff' },
-          labelBgPadding: [4, 4],
-          labelBgBorderRadius: 2,
-        }}
       >
         <Background />
         <Controls />
         <MiniMap />
       </ReactFlow>
+
+      {showNodeDetails && selectedNode && (
+        <NodeDetailsPanel
+          node={selectedNode}
+          onClose={() => setShowNodeDetails(false)}
+          edges={edges}
+          nodes={nodes}
+        />
+      )}
+
+      {showSearchPanel && (
+        <SearchPanel
+          nodes={nodes}
+          onNodeSelect={handleNodeSelectFromSearch}
+        />
+      )}
 
       <Dialog open={nodeDialogOpen} onClose={() => setNodeDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
@@ -856,7 +980,7 @@ const Graph = () => {
                 {filteredNodes.map((node) => (
                   <Box
                     key={node.id}
-                    onClick={() => handleNodeSelectFromSearch(node, true)}
+                    onClick={() => handleNodeSelectFromSearch(node)}
                     sx={{
                       p: 1,
                       cursor: 'pointer',
@@ -886,7 +1010,7 @@ const Graph = () => {
                 {filteredNodes.map((node) => (
                   <Box
                     key={node.id}
-                    onClick={() => handleNodeSelectFromSearch(node, false)}
+                    onClick={() => handleNodeSelectFromSearch(node)}
                     sx={{
                       p: 1,
                       cursor: 'pointer',
